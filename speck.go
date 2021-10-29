@@ -3,85 +3,63 @@ package speck
 
 import (
 	"crypto/cipher"
-	"strconv"
+	"fmt"
 )
 
-type KeySizeError int
-
-func (k KeySizeError) Error() string {
-	return "speck: invalid key size " + strconv.Itoa(int(k))
+type SizeError struct {
+	BlockSize int
+	KeySize   int
 }
 
-func newCipher(key []byte, blocksize int) (cipher.Block, error) {
-	return nil, nil
+func (e SizeError) Error() string {
+	return fmt.Sprintf("speck: invalid block size %d and key size %d", e.BlockSize, e.KeySize)
 }
 
-// NewCipher32 creates and returns a new cipher.Block.
-// The block size is 32 bits.
-// The key argument should be 64 bits.
-func NewCipher32(key []byte) (cipher.Block, error) {
-	k := len(key)
-	switch k {
+type speckCipher struct {
+	key       []byte
+	blockSize int
+	rounds    int
+}
+
+func (s speckCipher) BlockSize() int {
+	return s.blockSize
+}
+
+func (s speckCipher) Encrypt(dst, src []byte) {
+
+}
+
+func (s speckCipher) Decrypt(dst, src []byte) {
+
+}
+
+// NewCipher creates and returns a new cipher.Block.
+func NewCipher(key []byte, blockSize int) (cipher.Block, error) {
+	var rounds int
+	keySize := len(key)
+	switch {
 	default:
-		return nil, KeySizeError(k)
-	case 8:
-		break
+		return nil, SizeError{blockSize, keySize}
+	case blockSize == 4 && keySize == 8:
+		rounds = 22
+	case blockSize == 6 && keySize == 9:
+		rounds = 22
+	case blockSize == 6 && keySize == 12:
+		rounds = 23
+	case blockSize == 8 && keySize == 12:
+		rounds = 26
+	case blockSize == 8 && keySize == 16:
+		rounds = 27
+	case blockSize == 12 && keySize == 12:
+		rounds = 28
+	case blockSize == 12 && keySize == 18:
+		rounds = 29
+	case blockSize == 16 && keySize == 16:
+		rounds = 32
+	case blockSize == 16 && keySize == 24:
+		rounds = 33
+	case blockSize == 16 && keySize == 32:
+		rounds = 34
 	}
-	return newCipher(key, 32)
-}
-
-// NewCipher48 creates and returns a new cipher.Block.
-// The block size is 48 bits.
-// The key argument should be either 72 or 96 bits.
-func NewCipher48(key []byte) (cipher.Block, error) {
-	k := len(key)
-	switch k {
-	default:
-		return nil, KeySizeError(k)
-	case 9, 12:
-		break
-	}
-	return newCipher(key, 48)
-}
-
-// NewCipher64 creates and returns a new cipher.Block.
-// The block size is 64 bits.
-// The key argument should be either 96 or 128 bits.
-func NewCipher64(key []byte) (cipher.Block, error) {
-	k := len(key)
-	switch k {
-	default:
-		return nil, KeySizeError(k)
-	case 12, 16:
-		break
-	}
-	return newCipher(key, 64)
-}
-
-// NewCipher96 creates and returns a new cipher.Block.
-// The block size is 96 bits.
-// The key argument should be either 96 or 144 bits.
-func NewCipher96(key []byte) (cipher.Block, error) {
-	k := len(key)
-	switch k {
-	default:
-		return nil, KeySizeError(k)
-	case 12, 18:
-		break
-	}
-	return newCipher(key, 96)
-}
-
-// NewCipher128 creates and returns a new cipher.Block.
-// The block size is 128 bits.
-// The key argument should be either 128, 192, or 256 bits.
-func NewCipher128(key []byte) (cipher.Block, error) {
-	k := len(key)
-	switch k {
-	default:
-		return nil, KeySizeError(k)
-	case 16, 24, 32:
-		break
-	}
-	return newCipher(key, 128)
+	return speckCipher{blockSize: blockSize, key: key, rounds: rounds}, nil
 }
